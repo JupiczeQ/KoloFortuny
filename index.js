@@ -102,6 +102,7 @@ function rotate() {
     if (currentPhase === "team" && teamCandidates.length === 1 && !isAnimatingTransfer) {
       // Gdy pozostała tylko ostatnia drużyna, ustaw inny napis
       spinEl.textContent = "OSTATNIA DRUŻYNA";
+      spinEl.classList.add('no-triangle');
     } else {
       spinEl.textContent = 'LOSUJ';
     }
