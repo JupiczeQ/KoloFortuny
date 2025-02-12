@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Liga Mistrzów Czarna</title>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="index.js"></script>
+  </head>
+  <body>
+    <!-- Panel do wczytania pliku z nazwami drużyn -->
+    <div id="controls">
+      <label for="teamFile">Wybierz plik txt z nazwami drużyn:</label>
+      <input type="file" id="teamFile" accept=".txt" />
+    </div>
+    
+    <!-- Kontener główny: lewa połowa – koło fortuny, prawa połowa – tabela zwycięzców -->
+    <div id="container">
+      <!-- Lewa połowa – koło fortuny -->
+      <div id="wheelOfFortune">
+        <div class="square-container">
+          <canvas id="wheel" width="800" height="800"></canvas>
+          <!-- Centralny przycisk SPIN umieszczony na środku koła -->
+          <div id="spin">SPIN</div>
+        </div>
+        <!-- Zwiększone koło fortuny: 800×800 pikseli -->
+      </div>
+      
+      <!-- Prawa połowa – tabela zwycięzców (na początku pusta) -->
+      <div id="tableContainer">
+        <table id="teamsTable">
+          <thead>
+            <tr>
+              <th>Drużyna</th>
+              <th>Numer startowy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Wiersze będą dodawane dynamicznie po losowaniu -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
