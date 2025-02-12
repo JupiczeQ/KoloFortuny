@@ -125,6 +125,7 @@ body {
   width: 80vmin;
   height: 80vmin;
   position: relative;
+  aspect-ratio: 1 / 1;
 }
 
 #wheel {
