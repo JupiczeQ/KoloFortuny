@@ -15,7 +15,7 @@ let isAnimatingTransfer = false;
 
 const PI = Math.PI;
 const TAU = 2 * PI;
-const friction = 0.016;
+const friction = 0.986;
 
 const spinEl = document.getElementById('spin');
 const canvas = document.getElementById('wheel');
