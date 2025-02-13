@@ -3,10 +3,9 @@ const rand = (m, M) => Math.random() * (M - m) + m;
 
 // Globalne zmienne symulacji
 let teamCandidates = [];    // Lista drużyn do losowania (kandydaci)
-let availableNumbers = [];  // Dostępne numery startowe
-let winners = [];           // Zwycięzcy: obiekty { team, number }
-let currentPhase = "team";  // Aktualna faza: "team" lub "number" (lub "done")
-let sectors = [];           // Dane do rysowania koła (w zależności od fazy)
+let winners = [];           // Wyłonione drużyny (kolejność losowania)
+let currentPhase = "team";  // Faza: tylko "team" (do losowania drużyn) lub "done"
+let sectors = [];           // Dane do rysowania koła
 let tot = 0;                // Liczba sektorów
 let arc = 0;                // Kąt pojedynczego sektora
 let isSpinning = false;     // Flaga – czy koło aktualnie się kręci?
@@ -16,7 +15,7 @@ let isAnimatingTransfer = false;
 
 const PI = Math.PI;
 const TAU = 2 * PI;
-const friction = 0.991;
+const friction = 0.016;
 
 const spinEl = document.getElementById('spin');
 const canvas = document.getElementById('wheel');
@@ -29,7 +28,7 @@ function getColor(i, total) {
   return `hsl(${(i * 360 / total)}, 70%, 50%)`;
 }
 
-// Rysowanie pojedynczego sektora (używane zarówno przy losowaniu drużyny, jak i numeru)
+// Rysowanie pojedynczego sektora (używane przy losowaniu drużyny)
 function drawSector(sector, i) {
   const startAngle = arc * i;
   ctx.save();
@@ -91,28 +90,29 @@ function drawSector(sector, i) {
   ctx.restore();
 }
 
-
 // Ustawienie transformacji obracającej koło
 function rotate() {
   ctx.canvas.style.transform = `rotate(${ang - PI / 2}rad)`;
   const sector = sectors[getIndex()];
   
   if (!angVel) {
-    // Jeśli koło nie obraca się:
-    if (currentPhase === "team" && teamCandidates.length === 1 && !isAnimatingTransfer) {
-      // Gdy pozostała tylko ostatnia drużyna, ustaw inny napis
-      spinEl.textContent = "OSTATNIA DRUŻYNA";
+    // Gdy koło stoi w miejscu
+    if (teamCandidates.length === 1 && !isAnimatingTransfer) {
+      spinEl.textContent = "OSTATNIA DRUZYNA";
       spinEl.classList.add('no-triangle');
     } else {
       spinEl.textContent = 'LOSUJ';
+      spinEl.classList.remove('no-triangle');
     }
   } else {
-    // Podczas obrotu wyświetlamy nazwę aktualnie wskazywanego sektora
+    // Podczas obrotu – pokazujemy nazwę aktualnie wskazywanego sektora
     spinEl.textContent = sector ? sector.label : '';
+    spinEl.classList.remove('no-triangle');
   }
   
   spinEl.style.background = sector ? sector.color : '#fff';
 }
+
 
 // Obliczenie indeksu sektora, który „wskazuje” zwycięzcę
 function getIndex() {
@@ -148,26 +148,19 @@ function engine() {
   requestAnimationFrame(engine);
 }
 
-// Funkcja animująca przeniesienie nazwy drużyny z centralnego przycisku do tabeli
+// Funkcja animująca przeniesienie nazwy drużyny z przycisku SPIN do odpowiedniego wiersza tabeli
 function animateTeamTransfer(teamName, callback) {
   const tbody = document.querySelector('#teamsTable tbody');
-  const tr = document.createElement("tr");
-  const tdTeam = document.createElement("td");
-  tdTeam.textContent = ""; // początkowo puste
-  const tdNumber = document.createElement("td");
-  tdNumber.textContent = "";
-  tr.appendChild(tdTeam);
-  tr.appendChild(tdNumber);
-  tbody.appendChild(tr);
-
-  // Pozycja docelowa – środek komórki z nazwą drużyny
+  const rows = tbody.querySelectorAll("tr");
+  // Wybieramy kolejny nieobsadzony wiersz (bazując na liczbie już przydzielonych drużyn)
+  const targetRow = rows[winners.length];
+  // Druga komórka (indeks 1) – miejsce na nazwę drużyny
+  const tdTeam = targetRow.children[1];
   const targetRect = tdTeam.getBoundingClientRect();
-  // Pozycja startowa – środek przycisku SPIN
   const spinRect = spinEl.getBoundingClientRect();
   const startX = spinRect.left + spinRect.width / 2;
   const startY = spinRect.top + spinRect.height / 2;
 
-  // Tworzymy pływający element
   const floating = document.createElement("div");
   floating.textContent = teamName;
   floating.className = "floatingTeam";
@@ -176,10 +169,9 @@ function animateTeamTransfer(teamName, callback) {
   floating.style.transform = "translate(-50%, -50%)";
   document.body.appendChild(floating);
 
-  // Wymuszamy reflow
+  // Wymuszenie reflow
   floating.getBoundingClientRect();
 
-  // Pozycja docelowa
   const targetX = targetRect.left + targetRect.width / 2;
   const targetY = targetRect.top + targetRect.height / 2;
   floating.style.left = targetX + "px";
@@ -192,47 +184,8 @@ function animateTeamTransfer(teamName, callback) {
   }, { once: true });
 }
 
-// Funkcja animująca przeniesienie numeru startowego do tabeli
-function animateNumberTransfer(number, callback) {
-  const tbody = document.querySelector('#teamsTable tbody');
-  const lastRow = tbody.lastElementChild;
-  if (!lastRow) {
-    if (callback) callback();
-    return;
-  }
-  const tdNumber = lastRow.children[1];
-  // Pozycja docelowa – środek komórki dla numeru
-  const targetRect = tdNumber.getBoundingClientRect();
-  // Pozycja startowa – środek przycisku SPIN
-  const spinRect = spinEl.getBoundingClientRect();
-  const startX = spinRect.left + spinRect.width / 2;
-  const startY = spinRect.top + spinRect.height / 2;
 
-  const floating = document.createElement("div");
-  floating.textContent = number;
-  floating.className = "floatingNumber";
-  floating.style.left = startX + "px";
-  floating.style.top = startY + "px";
-  floating.style.transform = "translate(-50%, -50%)";
-  document.body.appendChild(floating);
-
-  // Wymuszamy reflow
-  floating.getBoundingClientRect();
-
-  // Pozycja docelowa
-  const targetX = targetRect.left + targetRect.width / 2;
-  const targetY = targetRect.top + targetRect.height / 2;
-  floating.style.left = targetX + "px";
-  floating.style.top = targetY + "px";
-
-  floating.addEventListener("transitionend", function() {
-      document.body.removeChild(floating);
-      tdNumber.textContent = number;
-      if (callback) callback();
-  }, { once: true });
-}
-
-// Funkcje ładujące dane do koła dla obu faz
+// Funkcja ładująca dane do koła – tylko dla losowania drużyn
 function loadTeamSectors() {
   tot = teamCandidates.length;
   arc = tot > 0 ? TAU / tot : 0;
@@ -245,66 +198,94 @@ function loadTeamSectors() {
   drawWheel();
 }
 
-function loadNumberSectors() {
-  tot = availableNumbers.length;
-  arc = tot > 0 ? TAU / tot : 0;
-  sectors = availableNumbers.map((num, index) => ({
-    color: getColor(index, tot),
-    label: num.toString()
-  }));
-  ang = 0;
-  angVel = 0;
-  drawWheel();
-}
-
-// Funkcja obsługująca zakończenie obrotu – zależnie od fazy
+// Funkcja obsługująca zakończenie obrotu – losujemy drużynę
 function spinEnded() {
-  if (currentPhase === "team") {
-    // Faza losowania drużyny
-    let winningIndex = getIndex();
-    let winningTeam = teamCandidates[winningIndex];
-    teamCandidates.splice(winningIndex, 1);
-    isAnimatingTransfer = true;
-    animateTeamTransfer(winningTeam, () => {
+  let winningIndex = getIndex();
+  let winningTeam = teamCandidates[winningIndex];
+  teamCandidates.splice(winningIndex, 1);
+  isAnimatingTransfer = true;
+  animateTeamTransfer(winningTeam, () => {
       isAnimatingTransfer = false;
-      winners.push({ team: winningTeam, number: null });
-      currentPhase = "number";
-      loadNumberSectors();
-    });
-  } else if (currentPhase === "number") {
-    // Faza losowania numeru startowego
-    let winningIndex = getIndex();
-    let winningNumber = availableNumbers[winningIndex];
-    availableNumbers.splice(winningIndex, 1);
-    animateNumberTransfer(winningNumber, () => {
-      winners[winners.length - 1].number = winningNumber;
+      winners.push(winningTeam);
       if (teamCandidates.length > 0) {
-        currentPhase = "team";  
-        loadTeamSectors();
+          loadTeamSectors();
       } else {
-        // Koniec losowania – ostatnia drużyna została przypisana
-        currentPhase = "done";
-        spinEl.textContent = "KONIEC";
-        spinEl.style.background = "#ccc";
-        ctx.clearRect(0, 0, dia, dia);
+          // Koniec losowania – wszystkie drużyny zostały przydzielone
+          currentPhase = "done";
+          spinEl.textContent = "KONIEC";
+          spinEl.style.background = "#ccc";
+          ctx.clearRect(0, 0, dia, dia);
+
+          // Finalna animacja: ukrycie koła oraz przycisku, wyśrodkowanie tabeli
+          const wheelContainer = document.getElementById('wheelOfFortune');
+          const tableContainer = document.getElementById('tableContainer');
+          
+          wheelContainer.classList.add('hidden');
+          spinEl.classList.add('hidden');
+          tableContainer.style.width = '90%';
+          animateTableToCenter();
       }
-    });
-  }
+  });
 }
 
-// Funkcja przetwarzająca dane z pliku – przyjmuje tablicę nazw drużyn
+// Obsługa przycisku SPIN – uruchomienie obrotu (tylko losowanie drużyn)
+spinEl.addEventListener('click', () => {
+  // Jeśli trwa animacja przenoszenia nazwy drużyny, przerywamy działanie funkcji.
+  if (isAnimatingTransfer) return;
+
+  // Specjalny przypadek: gdy została już tylko ostatnia drużyna
+  if (currentPhase === "team" && teamCandidates.length === 1 && !isSpinning) {
+    let lastTeam = teamCandidates[0];
+    teamCandidates.splice(0, 1);
+    animateTeamTransfer(lastTeam, () => {
+      winners.push(lastTeam);
+      currentPhase = "done";
+      spinEl.textContent = "KONIEC";
+      spinEl.style.background = "#ccc";
+      ctx.clearRect(0, 0, dia, dia);
+
+      // Finalna animacja: ukrycie koła i przycisku, wyśrodkowanie tabeli
+      const wheelContainer = document.getElementById('wheelOfFortune');
+      const tableContainer = document.getElementById('tableContainer');
+      
+      wheelContainer.classList.add('hidden');
+      spinEl.classList.add('hidden');
+      tableContainer.style.width = '90%';
+      animateTableToCenter();
+    });
+  } else if (!isSpinning && currentPhase !== "done" && tot > 0) {
+    // Standardowy obrót
+    isSpinning = true;
+    angVel = rand(0.25, 0.45);
+  }
+});
+
+
+// Funkcja przetwarzająca dane z pliku – tworzy tabelę z numerami startowymi od 1 do n
 function loadTeams(teams) {
   winners = [];
   teamCandidates = teams.slice();
-  availableNumbers = [];
+  
+  // Wypełnienie tabeli: pierwsza kolumna – numer startowy, druga – nazwa drużyny (później uzupełniana)
+  const tbody = document.querySelector('#teamsTable tbody');
+  tbody.innerHTML = "";
   for (let i = 1; i <= teams.length; i++) {
-    availableNumbers.push(i);
+    const tr = document.createElement("tr");
+    const tdNumber = document.createElement("td");
+    tdNumber.textContent = i.toString(); // Numer startowy
+    const tdTeam = document.createElement("td");
+    tdTeam.textContent = ""; // Nazwa drużyny zostanie dodana przy animacji
+    tr.appendChild(tdNumber);
+    tr.appendChild(tdTeam);
+    tbody.appendChild(tr);
   }
+  
   currentPhase = "team";
   loadTeamSectors();
-  // Tabela na starcie pozostaje pusta
 }
 
+
+// Funkcja animująca przesunięcie tabeli do środka widoku (pozostaje bez zmian)
 function animateTableToCenter() {
   const tableContainer = document.getElementById('tableContainer');
   
@@ -314,7 +295,7 @@ function animateTableToCenter() {
   // Wymuś reflow, by odczytać aktualne wymiary i pozycję
   const rect = tableContainer.getBoundingClientRect();
 
-  // Oblicz środek widoku (zakładamy, że cały widok to container, czyli viewport)
+  // Oblicz środek widoku (zakładamy, że cały widok to viewport)
   const viewportCenterX = window.innerWidth / 2;
   const viewportCenterY = window.innerHeight / 2;
   
@@ -330,51 +311,80 @@ function animateTableToCenter() {
   const deltaX = targetX - currentX;
   const deltaY = targetY - currentY;
   
-  // Ustaw przejście – jest już zdefiniowane w CSS, ale tu upewniamy się, że inline styl zostanie zmieniony
+  // Ustaw przejście – inline transition
   tableContainer.style.transition = "transform 1s ease-out";
   // Ustaw przesunięcie
   tableContainer.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+
+  // Po zakończeniu animacji wyśrodkowania tabeli, animujemy wysunięcie województw
+  tableContainer.addEventListener("transitionend", function handler() {
+    tableContainer.removeEventListener("transitionend", handler);
+    animateProvinces();
+  });
 }
 
-// Obsługa przycisku SPIN – uruchomienie obrotu (dla obu faz)
-spinEl.addEventListener('click', () => {
-  // Specjalny przypadek – gdy zostaje ostatnia drużyna
-  if (currentPhase === "team" && teamCandidates.length === 1) {
-    let lastTeam = teamCandidates[0];
-    teamCandidates.splice(0, 1);
-    animateTeamTransfer(lastTeam, () => {
-      winners.push({ team: lastTeam, number: null });
-      // Automatyczne przypisanie ostatniego numeru
-      let lastNumber = availableNumbers[0];
-      availableNumbers.splice(0, 1);
-      animateNumberTransfer(lastNumber, () => {
-        winners[winners.length - 1].number = lastNumber;
-        // Finalna animacja odpala się dopiero po zakończeniu obu animacji:
-        currentPhase = "done";
-        spinEl.textContent = "KONIEC";
-        spinEl.style.background = "#ccc";
-        ctx.clearRect(0, 0, dia, dia);
+// Funkcja animująca wysunięcie województw (12 obrazków) z dołu ekranu
+function animateProvinces() {
+  const tableRect = document.getElementById('tableContainer').getBoundingClientRect();
 
-        // Pobieramy referencje do elementów
-        const wheelContainer = document.getElementById('wheelOfFortune');
-        const tableContainer = document.getElementById('tableContainer');
-        const container = document.getElementById('container');
-        
-        // Dodajemy klasy powodujące finalne animacje
-        wheelContainer.classList.add('hidden');  // Koło z przyciskiem znika płynnie
-        spinEl.classList.add('hidden');            // Ukrywamy przycisk
-        //container.classList.add('centered');       // Kontener zostaje wyśrodkowany
-        tableContainer.style.width = '90%';  // lub inna wartość
-        animateTableToCenter();
-      });
-    });
-  } else if (!isSpinning && currentPhase !== "done" && tot > 0) {
-    // Standardowy obrót (gdy nie mamy ostatniej drużyny)
-    isSpinning = true;
-    angVel = rand(0.25, 0.45);
+  // Utwórz kontener dla lewej kolumny (6 województw)
+  const leftContainer = document.createElement("div");
+  leftContainer.id = "provincesLeft";
+  leftContainer.className = "provinceColumn";
+  // Ustawiamy stałą szerokość – można zmodyfikować według potrzeb
+  leftContainer.style.width = "150px";
+  // Pozycjonowanie – wyśrodkowane wertykalnie względem tabeli
+  leftContainer.style.top = tableRect.top + "px";
+  // Pozycja pozioma: umieszczamy po lewej stronie tabeli (20px margines)
+  leftContainer.style.left = (tableRect.left - 170) + "px"; 
+
+  // Utwórz kontener dla prawej kolumny (kolejne 6 województw)
+  const rightContainer = document.createElement("div");
+  rightContainer.id = "provincesRight";
+  rightContainer.className = "provinceColumn";
+  rightContainer.style.width = "150px";
+  rightContainer.style.top = tableRect.top + "px";
+  // Pozycja: po prawej stronie tabeli (20px margines)
+  rightContainer.style.left = (tableRect.right + 20) + "px";
+
+  // Dodaj 6 obrazków do lewego kontenera (przyjmujemy, że pliki są nazwane 1.png–6.png)
+  for (let i = 1; i <= 6; i++) {
+    const img = document.createElement("img");
+    img.src = `HerbyWoj/${i}.png`;
+    img.alt = `Województwo ${i}`;
+    img.className = "provinceImage";
+    leftContainer.appendChild(img);
   }
-});
 
+  // Dodaj 6 obrazków do prawego kontenera (pliki 7.png–12.png)
+  for (let i = 7; i <= 12; i++) {
+    const img = document.createElement("img");
+    img.src = `HerbyWoj/${i}.png`;
+    img.alt = `Województwo ${i}`;
+    img.className = "provinceImage";
+    rightContainer.appendChild(img);
+  }
+
+  // Początkowo umieszczamy kontenery poza ekranem (na dole)
+  leftContainer.style.transform = "translateY(100vh)";
+  rightContainer.style.transform = "translateY(100vh)";
+
+  // Dodajemy kontenery do dokumentu (np. do body)
+  document.body.appendChild(leftContainer);
+  document.body.appendChild(rightContainer);
+
+  // Wymuś reflow, aby przeglądarka odczytała początkowe pozycje
+  leftContainer.getBoundingClientRect();
+  rightContainer.getBoundingClientRect();
+
+  // Ustaw transition (możesz modyfikować czas/trwanie)
+  leftContainer.style.transition = "transform 1s ease-out";
+  rightContainer.style.transition = "transform 1s ease-out";
+
+  // Ustaw docelową pozycję (transform: none – kontenery przesuną się do swoich pozycji)
+  leftContainer.style.transform = "translateY(0)";
+  rightContainer.style.transform = "translateY(0)";
+}
 
 // Obsługa wczytywania pliku z nazwami drużyn
 const fileInput = document.getElementById('teamFile');

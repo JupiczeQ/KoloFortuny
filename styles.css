@@ -3,7 +3,7 @@ html, body {
   margin: 0;
   padding: 0;
   overflow: hidden; /* ukrywa wszelkie nadmiarowe elementy */
-  background: #e0f7fa;
+  background: #f4fdff;
 }
 
 /* Reset i podstawowe style */
@@ -13,10 +13,39 @@ html, body {
   box-sizing: border-box;
 }
 
+#actionLogo {
+  width: 838px;      /* lub, jeśli chcesz responsywność, np.: max-width: 80%; */
+  height: 131px;      /* możesz też pominąć height, żeby zachować proporcje */
+  display: block;
+  margin: 0 auto 30px; /* 20px odstępu poniżej logo */
+}
+
+/* Style dla kolumny województw */
+.provinceColumn {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Opcjonalnie: wyrównanie zawartości */
+  align-items: center;
+  height: 100vh;
+  justify-content: space-evenly; /* równomierne rozmieszczenie obrazków */
+}
+
+/* Style dla obrazków województw */
+.provinceImage {
+  max-height: calc((100vh - 50px) / 6);
+  width: auto;
+  object-fit: contain;
+  height: auto;
+  /* Opcjonalnie: delikatny cień i obramowanie */
+  border-radius: 4px;
+}
+
 body {
   position: relative;
   font-family: Arial;
-  background: #e0f7fa;
+  background: #f4fdff;
 }
 
 /* Panel kontroli – wybór pliku */
@@ -46,7 +75,7 @@ body {
 /* Lewa połowa – koło fortuny (wycentrowane) */
 #wheelOfFortune {
   flex: 1;
-  background: #e0f7fa;
+  background: #f4fdff;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -64,8 +93,9 @@ body {
 /* Prawa połowa – tabela zwycięzców (wycentrowana) */
 #tableContainer {
   flex: 1;
-  background: #e0f7fa;
+  background: #f4fdff;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   padding: 20px;
