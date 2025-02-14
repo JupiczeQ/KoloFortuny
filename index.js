@@ -78,7 +78,10 @@ function drawSector(sector, i) {
   // Przesuwamy układ współrzędnych – środek koła
   ctx.translate(rad, rad);
   // Obracamy tak, aby tekst był wyśrodkowany w danym sektorze
-  ctx.rotate(startAngle + arc / 2);
+  if(tot==1)
+    ctx.rotate(startAngle + arc / 2 - Math.PI/2);
+  else
+    ctx.rotate(startAngle + arc / 2);
   ctx.textAlign = 'right';
   ctx.fillStyle = '#fff';
   
